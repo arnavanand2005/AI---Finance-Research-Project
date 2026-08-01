@@ -1,0 +1,70 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment Variables
+.env
+
+# Logs
+*.log
+
+# =========================
+# Node / React
+# =========================
+node_modules/
+dist/
+build/
+
+# Vite
+.vite/
+
+# =========================
+# VS Code
+# =========================
+.vscode/
+
+# macOS
+.DS_Store
+
+# =========================
+# Data
+# =========================
+data/
+*.csv
+*.zip
+*.parquet
+*.feather
+
+# =========================
+# ML Models
+# =========================
+models/
+*.pkl
+*.joblib
+*.h5
+*.keras
+*.onnx
+
+# =========================
+# Reports
+# =========================
+*.pdf
+*.pptx
+
+# =========================
+# Cache
+# =========================
+.cache/
+.pytest_cache/
