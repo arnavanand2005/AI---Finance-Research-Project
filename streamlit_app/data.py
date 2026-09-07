@@ -7,7 +7,7 @@ nothing is simulated. This module has no dependency on the raw dataset
 or trained model artifacts, so the showcase app can run standalone.
 """
 
-TEAM = ["Arnav Anand", "Devansh Gupta", "Anssssssss Mathur"]
+TEAM = ["Arnav Anand", "Devansh Gupta", "Ansh Mathur"]
 
 HEADLINE_STATS = [
     {"label": "Applications analyzed", "value": "307,511"},

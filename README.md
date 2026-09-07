@@ -23,4 +23,4 @@ Home Credit Default Risk (Kaggle)
 
 - Arnav Anand
 - Devansh Gupta
-- Anssssssss Mathur
+- Ansh Mathur
