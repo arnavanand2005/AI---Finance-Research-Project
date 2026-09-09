@@ -10,9 +10,14 @@ Run with: streamlit run streamlit_app/app.py
 """
 
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 
 import data
+
+
+# FastAPI backend
+API_URL = "http://127.0.0.1:8000"
 
 
 # ---------------------------------------------------------------------------
@@ -26,15 +31,20 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-INK = "#E7ECF5"
-MUTED = "#8B95AC"
-PAPER = "#111C33"
-PAPER_2 = "#0D1730"
-BORDER = "#223055"
-TEAL = "#2DD4BF"
-AMBER = "#F5A623"
-RED = "#EF5350"
-GREEN = "#34D399"
+# Credit / banking visual system
+INK = "#EEF4FF"
+MUTED = "#91A0BC"
+PAPER = "#101B33"
+PAPER_2 = "#0A1328"
+BORDER = "#26385E"
+
+TEAL = "#22D3C5"       # fintech / primary
+CYAN = "#38BDF8"       # data / technology
+BLUE = "#5B8CFF"       # banking / trust
+PURPLE = "#A78BFA"     # AI / explainability
+AMBER = "#F5B942"      # caution
+RED = "#FF5C68"        # high risk
+GREEN = "#34D399"      # low risk
 
 CHART_FONT = dict(family="Inter, sans-serif", color=INK, size=13)
 
@@ -59,144 +69,238 @@ st.markdown(
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
     <style>
-        html, body, [class*="css"] {{
-            font-family: 'Inter', sans-serif;
+        :root {{
+            --bg: #08111F;
+            --panel: #0F1D31;
+            --panel2: #12243C;
+            --border: #28415F;
+            --text: #EAF2FF;
+            --muted: #91A4BD;
+            --cyan: #28D7D0;
+            --blue: #4F8CFF;
+            --purple: #9B7CFF;
+            --gold: #F4B942;
+            --green: #36C98F;
+            --red: #F05D68;
         }}
-        h1, h2, h3, .report-title {{
-            font-family: 'Lora', serif !important;
-            letter-spacing: -0.01em;
+
+        .stApp {{
+            background: var(--bg);
+            color: var(--text);
         }}
+
         .block-container {{
-            padding-top: 2.2rem;
-            padding-bottom: 4rem;
-            max-width: 1100px;
+            max-width: 1180px;
+            padding-top: 2rem;
+            padding-bottom: 3rem;
         }}
+
+        section[data-testid="stSidebar"] {{
+            background: #0B1728;
+            border-right: 1px solid var(--border);
+        }}
+
+        h1, h2, h3, .report-title {{
+            color: var(--text) !important;
+            font-family: Georgia, serif !important;
+        }}
+
         .kicker {{
-            color: {TEAL};
-            font-weight: 600;
-            letter-spacing: 0.12em;
+            color: var(--cyan);
+            font-weight: 700;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
-            font-size: 0.78rem;
-            margin-bottom: 0.3rem;
+            font-size: 0.72rem;
+            margin-bottom: 0.5rem;
         }}
+
         .subtitle {{
-            color: {MUTED};
-            font-size: 1.05rem;
-            max-width: 46rem;
-            line-height: 1.55;
+            color: var(--muted);
+            font-size: 1rem;
+            line-height: 1.65;
+            max-width: 760px;
         }}
-        .card {{
-            background: {PAPER};
-            border: 1px solid {BORDER};
-            border-radius: 14px;
-            padding: 1.1rem 1.3rem;
+
+        .simple-hero {{
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--cyan);
+            border-radius: 12px;
+            padding: 1.5rem 1.6rem;
+            margin: 0.5rem 0 1.3rem 0;
         }}
+
+        .system-strip {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1.1rem;
+        }}
+
+        .system-item {{
+            border: 1px solid var(--border);
+            background: #10233B;
+            border-radius: 7px;
+            padding: 0.4rem 0.7rem;
+            color: #B8C8DE;
+            font-size: 0.78rem;
+        }}
+
+        .system-item.cyan {{
+            border-color: rgba(40,215,208,0.45);
+            color: var(--cyan);
+        }}
+
+        .system-item.blue {{
+            border-color: rgba(79,140,255,0.45);
+            color: #82A9FF;
+        }}
+
+        .system-item.purple {{
+            border-color: rgba(155,124,255,0.45);
+            color: #B59FFF;
+        }}
+
         .metric-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 0.9rem;
-            margin: 1.1rem 0 1.6rem 0;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.8rem;
+            margin: 1rem 0 1.4rem 0;
         }}
+
         .metric-card {{
-            background: linear-gradient(160deg, {PAPER} 0%, {PAPER_2} 100%);
-            border: 1px solid {BORDER};
-            border-radius: 14px;
-            padding: 1rem 1.2rem;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-top: 3px solid var(--blue);
+            border-radius: 10px;
+            padding: 1rem 1.1rem;
         }}
+
+        .metric-card:nth-child(1) {{ border-top-color: var(--cyan); }}
+        .metric-card:nth-child(2) {{ border-top-color: var(--blue); }}
+        .metric-card:nth-child(3) {{ border-top-color: var(--purple); }}
+        .metric-card:nth-child(4) {{ border-top-color: var(--gold); }}
+
         .metric-value {{
-            font-family: 'Lora', serif;
-            font-size: 1.9rem;
-            font-weight: 600;
-            color: {INK};
-            line-height: 1.1;
+            color: var(--text);
+            font-family: Georgia, serif;
+            font-size: 1.75rem;
+            font-weight: 700;
         }}
+
         .metric-label {{
-            color: {MUTED};
-            font-size: 0.82rem;
-            margin-top: 0.3rem;
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
         }}
+
         .pill {{
             display: inline-block;
-            background: {PAPER};
-            border: 1px solid {BORDER};
-            border-radius: 999px;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.78rem;
-            color: {MUTED};
-            margin: 0.15rem 0.3rem 0.15rem 0;
+            border: 1px solid var(--border);
+            background: #102038;
+            color: #B9C9DF;
+            border-radius: 6px;
+            padding: 0.28rem 0.65rem;
+            margin: 0.15rem 0.2rem 0.15rem 0;
+            font-size: 0.76rem;
         }}
-        .finding-list li {{
-            margin-bottom: 0.45rem;
-            line-height: 1.55;
-            color: {INK};
-        }}
-        .source-card {{
-            background: {PAPER};
-            border: 1px solid {BORDER};
-            border-radius: 12px;
-            padding: 0.85rem 1rem;
-            margin-bottom: 0.6rem;
-        }}
-        .source-name {{
-            font-family: 'Lora', serif;
-            color: {TEAL};
-            font-weight: 600;
-            font-size: 0.95rem;
-        }}
-        .source-desc {{
-            color: {MUTED};
-            font-size: 0.85rem;
-            margin-top: 0.15rem;
-        }}
-        .stage-card {{
-            background: {PAPER};
-            border: 1px solid {BORDER};
-            border-left: 3px solid {TEAL};
+
+        .card {{
+            background: var(--panel);
+            border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 0.9rem 1.1rem;
+            padding: 1rem 1.2rem;
+        }}
+
+        .stage-card {{
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--cyan);
+            border-radius: 9px;
+            padding: 0.9rem 1rem;
             margin-bottom: 0.7rem;
         }}
+
+        .stage-card:nth-child(2n) {{
+            border-left-color: var(--purple);
+        }}
+
         .stage-num {{
-            color: {TEAL};
-            font-family: 'Lora', serif;
+            color: var(--cyan);
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
         }}
+
         .stage-title {{
-            font-weight: 600;
-            color: {INK};
-            font-size: 1rem;
-            margin: 0.1rem 0 0.2rem 0;
+            color: var(--text);
+            font-weight: 650;
+            margin: 0.2rem 0;
         }}
+
         .stage-desc {{
-            color: {MUTED};
-            font-size: 0.87rem;
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.45;
+        }}
+
+        .source-card {{
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.6rem;
+        }}
+
+        .source-name {{
+            color: var(--cyan);
+            font-weight: 650;
+        }}
+
+        .source-desc {{
+            color: var(--muted);
+            font-size: 0.83rem;
+            margin-top: 0.2rem;
+        }}
+
+        .finding-list li {{
+            color: var(--text);
+            margin-bottom: 0.45rem;
             line-height: 1.5;
         }}
+
         .case-card {{
-            background: {PAPER};
-            border: 1px solid {BORDER};
-            border-radius: 14px;
-            padding: 1.2rem 1.3rem;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
         }}
+
         .case-prob {{
-            font-family: 'Lora', serif;
-            font-size: 2.1rem;
+            color: var(--text);
+            font-family: Georgia, serif;
+            font-size: 2rem;
             font-weight: 700;
         }}
+
         .risk-badge {{
             display: inline-block;
-            border-radius: 999px;
-            padding: 0.2rem 0.7rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.03em;
+            border-radius: 5px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.74rem;
+            font-weight: 700;
         }}
-        section[data-testid="stSidebar"] {{
-            border-right: 1px solid {BORDER};
+
+        @media (max-width: 800px) {{
+            .metric-grid {{
+                grid-template-columns: repeat(2, 1fr);
+            }}
         }}
-        hr {{
-            border-color: {BORDER} !important;
+
+        @media (max-width: 520px) {{
+            .metric-grid {{
+                grid-template-columns: 1fr;
+            }}
         }}
     </style>
     """,
@@ -241,50 +345,61 @@ def risk_color(level: str) -> str:
 # ---------------------------------------------------------------------------
 
 def page_overview():
-    st.markdown('<div class="kicker">Research Showcase</div>', unsafe_allow_html=True)
     st.markdown(
-        '<h1 class="report-title">Explainable AI for Credit Risk Assessment</h1>',
+        """
+<div class="simple-hero">
+    <div class="kicker">Credit Risk / AI Research</div>
+    <h1 class="report-title">Explainable AI for Credit Risk Assessment</h1>
+    <div class="subtitle">
+        A machine-learning system for predicting loan payment difficulty
+        using the Home Credit Default Risk dataset. LightGBM provides the
+        prediction while SHAP provides transparent explanations.
+    </div>
+    <div class="system-strip">
+        <span class="system-item cyan">DATA → FEATURES</span>
+        <span class="system-item blue">FEATURES → LIGHTGBM</span>
+        <span class="system-item purple">MODEL → SHAP</span>
+        <span class="system-item">EXPLAINABLE CREDIT AI</span>
+    </div>
+</div>
+        """,
         unsafe_allow_html=True,
     )
-    st.markdown(
-        f"""<div class="subtitle">
-        A machine-learning system that predicts loan payment difficulty on the
-        Home Credit Default Risk dataset, built to be as <b>interpretable</b> as
-        it is accurate. A LightGBM model combines application data with six
-        historical credit sources, and SHAP explains every prediction — at the
-        population level and for individual applicants.
-        </div>""",
-        unsafe_allow_html=True,
-    )
-    st.write("")
+
     metric_row(data.HEADLINE_STATS)
 
-    pill_row(["Python", "scikit-learn", "LightGBM", "SHAP", "FastAPI", "Streamlit"])
+    pill_row([
+        "Python",
+        "scikit-learn",
+        "LightGBM",
+        "SHAP",
+        "FastAPI",
+        "Streamlit",
+    ])
 
     st.write("")
     st.write("")
+
     section_header(
         "How we got here",
         "A six-stage research pipeline",
         "Each stage below is a notebook in the project, run in order — every "
         "number in this report traces back to one of them.",
     )
+
     cols = st.columns(2)
+
     for i, stage in enumerate(data.PIPELINE_STAGES):
         with cols[i % 2]:
             st.markdown(
                 f"""<div class="stage-card">
-                        <div class="stage-num">STAGE {stage['stage']}</div>
-                        <div class="stage-title">{stage['title']}</div>
-                        <div class="stage-desc">{stage['desc']}</div>
-                    </div>""",
+                    <div class="stage-num">STAGE {stage['stage']}</div>
+                    <div class="stage-title">{stage['title']}</div>
+                    <div class="stage-desc">{stage['desc']}</div>
+                </div>""",
                 unsafe_allow_html=True,
             )
 
-
-# ---------------------------------------------------------------------------
-# Page: Dataset & EDA
-# ---------------------------------------------------------------------------
 
 def page_dataset():
     section_header(
@@ -329,7 +444,7 @@ def page_dataset():
                 x=[abs(v) for v in vals],
                 y=feats,
                 orientation="h",
-                marker_color=TEAL,
+                marker_color=[CYAN, BLUE, PURPLE, TEAL, AMBER, RED][:len(feats)],
                 text=[f"{v:+.3f}" for v in vals],
                 textposition="outside",
             )
@@ -388,7 +503,7 @@ def page_methodology():
                 x=[g["n_features"] for g in groups][::-1],
                 y=[g["group"] for g in groups][::-1],
                 orientation="h",
-                marker_color=TEAL,
+                marker_color=[TEAL, CYAN, BLUE, PURPLE, AMBER, RED][:len(groups)][::-1],
                 text=[g["n_features"] for g in groups][::-1],
                 textposition="outside",
             )
@@ -570,7 +685,7 @@ def page_shap():
             x=pseudo_len,
             y=[r["feature"] for r in ranked],
             orientation="h",
-            marker_color=TEAL,
+            marker_color=[TEAL, CYAN, BLUE, PURPLE, AMBER] * 5,
         )
     )
     fig.update_layout(
@@ -655,7 +770,279 @@ def page_conclusion():
 
     st.write("")
     st.markdown("#### Tech stack")
-    pill_row(["Python", "Pandas", "scikit-learn", "LightGBM", "SHAP", "FastAPI", "React", "Streamlit"])
+    pill_row(["Python", "Pandas", "scikit-learn", "LightGBM", "SHAP", "FastAPI", "Streamlit"])
+
+
+
+# ---------------------------------------------------------------------------
+# Loan Prediction
+# ---------------------------------------------------------------------------
+
+def page_prediction():
+    section_header(
+        "Live Model",
+        "Credit risk prediction",
+        "Enter applicant information and send it to the FastAPI backend. "
+        "The backend applies the saved 298 → 422 preprocessing pipeline and "
+        "returns the LightGBM default probability.",
+    )
+
+    st.markdown(
+        """
+        <div class="simple-hero">
+            <div class="kicker">FastAPI / LightGBM</div>
+            <div style="font-size:1.05rem; color:#EAF2FF; font-weight:600;">
+                Applicant risk assessment
+            </div>
+            <div class="subtitle" style="margin-top:0.35rem;">
+                This interface is connected to the same final model used for
+                the research evaluation.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Check whether FastAPI is reachable.
+    try:
+        health_response = requests.get(
+            f"{API_URL}/health",
+            timeout=3
+        )
+        api_online = health_response.status_code == 200
+    except requests.RequestException:
+        api_online = False
+
+    if api_online:
+        st.success("FastAPI backend connected")
+    else:
+        st.error(
+            "FastAPI backend is not reachable. Start it with: "
+            "uvicorn main:app --reload"
+        )
+        st.info("Backend URL: http://127.0.0.1:8000")
+
+    st.markdown("### Applicant information")
+
+    with st.form("prediction_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            income = st.number_input(
+                "Annual income",
+                min_value=1.0,
+                value=180000.0,
+                step=10000.0,
+                help="AMT_INCOME_TOTAL",
+            )
+
+            credit = st.number_input(
+                "Credit amount",
+                min_value=1.0,
+                value=500000.0,
+                step=10000.0,
+                help="AMT_CREDIT",
+            )
+
+            annuity = st.number_input(
+                "Loan annuity",
+                min_value=1.0,
+                value=25000.0,
+                step=1000.0,
+                help="AMT_ANNUITY",
+            )
+
+            goods_price = st.number_input(
+                "Goods price",
+                min_value=1.0,
+                value=450000.0,
+                step=10000.0,
+                help="AMT_GOODS_PRICE",
+            )
+
+            gender = st.selectbox(
+                "Gender",
+                ["M", "F"],
+            )
+
+        with col2:
+            days_birth = st.number_input(
+                "Age",
+                min_value=18,
+                max_value=100,
+                value=33,
+                step=1,
+            )
+
+            days_employed = st.number_input(
+                "Employment duration (years)",
+                min_value=0.0,
+                max_value=50.0,
+                value=8.0,
+                step=1.0,
+            )
+
+            family_status = st.selectbox(
+                "Family status",
+                [
+                    "Married",
+                    "Single / not married",
+                    "Civil marriage",
+                    "Separated",
+                    "Widow",
+                ],
+            )
+
+            education = st.selectbox(
+                "Education",
+                [
+                    "Secondary / secondary special",
+                    "Higher education",
+                    "Incomplete higher",
+                    "Lower secondary",
+                    "Academic degree",
+                ],
+            )
+
+        st.markdown("### External credit indicators")
+
+        ext1_col, ext2_col, ext3_col = st.columns(3)
+
+        with ext1_col:
+            ext_source_1 = st.number_input(
+                "EXT_SOURCE_1",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.5,
+                step=0.01,
+            )
+
+        with ext2_col:
+            ext_source_2 = st.number_input(
+                "EXT_SOURCE_2",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.6,
+                step=0.01,
+            )
+
+        with ext3_col:
+            ext_source_3 = st.number_input(
+                "EXT_SOURCE_3",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.5,
+                step=0.01,
+            )
+
+        submitted = st.form_submit_button(
+            "Assess Credit Risk",
+            type="primary",
+            use_container_width=True,
+        )
+
+    if not submitted:
+        return
+
+    # The FastAPI schema expects DAYS_BIRTH and DAYS_EMPLOYED as negative
+    # day counts, matching the Home Credit dataset convention.
+    days_birth_value = int(round(-days_birth * 365.25))
+    days_employed_value = int(round(-days_employed * 365.25))
+
+    payload = {
+        "AMT_INCOME_TOTAL": float(income),
+        "AMT_CREDIT": float(credit),
+        "AMT_ANNUITY": float(annuity),
+        "AMT_GOODS_PRICE": float(goods_price),
+        "EXT_SOURCE_1": float(ext_source_1),
+        "EXT_SOURCE_2": float(ext_source_2),
+        "EXT_SOURCE_3": float(ext_source_3),
+        "DAYS_BIRTH": days_birth_value,
+        "DAYS_EMPLOYED": days_employed_value,
+        "CODE_GENDER": gender,
+        "NAME_FAMILY_STATUS": family_status,
+        "NAME_EDUCATION_TYPE": education,
+    }
+
+    with st.spinner("Running the LightGBM risk model..."):
+        try:
+            response = requests.post(
+                f"{API_URL}/predict",
+                json=payload,
+                timeout=30,
+            )
+        except requests.RequestException as exc:
+            st.error(f"Could not connect to FastAPI: {exc}")
+            return
+
+    if response.status_code != 200:
+        st.error(f"Prediction failed ({response.status_code})")
+        try:
+            st.json(response.json())
+        except ValueError:
+            st.code(response.text)
+        return
+
+    result = response.json()
+
+    st.markdown("### Prediction result")
+
+    probability = result["default_probability"]
+    percentage = result["default_percentage"]
+    risk_level = result["risk_level"]
+    prediction = result["prediction"]
+
+    if risk_level == "High Risk":
+        accent = RED
+    elif risk_level == "Moderate Risk":
+        accent = AMBER
+    else:
+        accent = GREEN
+
+    result_col1, result_col2, result_col3 = st.columns(3)
+
+    with result_col1:
+        st.metric("Default probability", f"{percentage:.2f}%")
+
+    with result_col2:
+        st.metric(
+            "Decision",
+            "Default risk" if prediction == 1 else "No default risk",
+        )
+
+    with result_col3:
+        st.markdown(
+            f"""
+            <div class="card" style="border-top:3px solid {accent};">
+                <div style="color:#91A4BD;font-size:0.8rem;">
+                    Risk level
+                </div>
+                <div style="
+                    color:{accent};
+                    font-family:Georgia,serif;
+                    font-size:1.55rem;
+                    font-weight:700;
+                    margin-top:0.25rem;
+                ">
+                    {risk_level}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.progress(
+        min(max(float(probability), 0.0), 1.0),
+        text=f"Model probability: {percentage:.2f}%"
+    )
+
+    st.caption(
+        f"Decision threshold: {result['threshold']:.2f}. "
+        "The threshold was selected using validation data."
+    )
+
+    with st.expander("View API request"):
+        st.json(payload)
 
 
 # ---------------------------------------------------------------------------
@@ -664,6 +1051,7 @@ def page_conclusion():
 
 PAGES = {
     "Overview": page_overview,
+    "Loan Prediction": page_prediction,
     "Dataset & EDA": page_dataset,
     "Methodology": page_methodology,
     "Feature Ablation Study": page_ablation,
